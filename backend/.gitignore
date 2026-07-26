@@ -90,4 +90,19 @@ report.*.*.*.*.json
 # ==========================
 .DS_Store
 Thumbs.db
+
+
+# ==========================
+# Prisma
+# ==========================
+prisma/dev.db
+prisma/dev.db-journal
 /generated/prisma/
+
+# ==========================
+# Kiro AI
+# ==========================
+skills-lock.json
+.agents/
+.claude/
+.windsurf/
