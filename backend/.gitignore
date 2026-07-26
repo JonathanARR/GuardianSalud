@@ -90,4 +90,4 @@ report.*.*.*.*.json
 # ==========================
 .DS_Store
 Thumbs.db
-/generated/prisma
+/generated/prisma/
