@@ -51,4 +51,37 @@ export class AuthService {
       },
     };
   }
+
+  async getProfile(userId: string) {
+
+  const user = await this.prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      role: true,
+      isActive: true,
+    },
+  });
+
+
+  if (!user) {
+    throw new InvalidFieldError(
+      'user',
+      'Usuario no encontrado',
+    );
+  }
+
+
+  return {
+    id: user.id,
+    full_name: user.fullName,
+    email: user.email,
+    role: user.role,
+    is_active: user.isActive,
+  };
+}
 }
