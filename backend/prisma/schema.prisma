@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================
+// ENUMS
+// =====================
+
+enum Role {
+  ADMIN
+  PHYSICIAN
+  NURSE
+}
+
+enum ShiftType {
+  MORNING
+  AFTERNOON
+  NIGHT
+}
+
+enum DoseStatus {
+  PENDING
+  APPLIED
+  OMITTED
+}
+
+// =====================
+// USERS
+// =====================
+
+model User {
+  id           String  @id @default(uuid()) @db.Uuid
+  fullName     String  @map("full_name") @db.VarChar(100)
+  email        String  @unique @db.VarChar(150)
+  passwordHash String  @map("password_hash") @db.VarChar(255)
+  role         Role
+  isActive     Boolean @default(true) @map("is_active")
+
+  staff Staff?
+
+  @@map("users")
+}
+
+// =====================
+// STAFF
+// =====================
+
+model Staff {
+  id             String     @id @default(uuid()) @db.Uuid
+  userId         String     @unique @map("user_id") @db.Uuid
+  specialties    String?
+  preferredShift ShiftType? @map("preferred_shift")
+
+  user User @relation(fields: [userId], references: [id])
+
+  shiftAssignments ShiftAssignment[]
+
+  prescribedTreatments TreatmentAssignment[] @relation("PrescribedBy")
+
+  assignedTreatments TreatmentAssignment[] @relation("AssignedStaff")
+
+  doseLogs DoseLog[]
+
+  @@map("staff")
+}
+
+// =====================
+// RESIDENTS
+// =====================
+
+model Resident {
+  id               String  @id @default(uuid()) @db.Uuid
+  nickname         String  @db.VarChar(100)
+  roomLocation     String  @map("room_location") @db.VarChar(50)
+  medicalCondition String? @map("medical_condition") @db.VarChar(150)
+  diet             String? @db.VarChar(100)
+  allergies        String?
+  specialCare      String? @map("special_care")
+
+  treatments TreatmentAssignment[]
+
+  doseLogs DoseLog[]
+
+  @@map("residents")
+}
+
+// =====================
+// MEDICATIONS
+// =====================
+
+model Medication {
+  id                  String  @id @default(uuid()) @db.Uuid
+  commercialName      String  @map("commercial_name") @db.VarChar(100)
+  activeIngredient    String? @map("active_ingredient") @db.VarChar(100)
+  concentration       String? @db.VarChar(50)
+  presentation        String? @db.VarChar(50)
+  administrationRoute String  @map("administration_route") @db.VarChar(50)
+
+  currentStock Int @default(0) @map("current_stock")
+  minimumStock Int @default(5) @map("minimum_stock")
+
+  treatments TreatmentAssignment[]
+
+  @@map("medications")
+}
+
+// =====================
+// SHIFT ASSIGNMENTS
+// =====================
+
+model ShiftAssignment {
+  id           String    @id @default(uuid()) @db.Uuid
+  staffId      String    @map("staff_id") @db.Uuid
+  shiftType    ShiftType @map("shift_type")
+  shiftDate    DateTime  @map("shift_date") @db.Date
+  assignedArea String?   @map("assigned_area") @db.VarChar(100)
+
+  staff Staff @relation(fields: [staffId], references: [id])
+
+  @@map("shift_assignments")
+}
+
+// =====================
+// TREATMENT ASSIGNMENTS
+// =====================
+
+model TreatmentAssignment {
+  id String @id @default(uuid()) @db.Uuid
+
+  residentId   String @map("resident_id") @db.Uuid
+  medicationId String @map("medication_id") @db.Uuid
+
+  prescribedBy    String @map("prescribed_by") @db.Uuid
+  assignedStaffId String @map("assigned_staff_id") @db.Uuid
+
+  prescribedDose String @map("prescribed_dose") @db.VarChar(50)
+
+  frequencyHours Int @map("frequency_hours")
+
+  startTime DateTime @map("start_time") @db.Time
+
+  isCritical Boolean @default(false) @map("is_critical")
+
+  aiInstructions String? @map("ai_instructions")
+
+  isTemporary Boolean @default(false) @map("is_temporary")
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  medication Medication @relation(fields: [medicationId], references: [id])
+
+  prescribedByStaff Staff @relation("PrescribedBy", fields: [prescribedBy], references: [id])
+
+  assignedStaff Staff @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+
+  doseLogs DoseLog[]
+
+  @@map("treatment_assignments")
+}
+
+// =====================
+// DOSE LOGS
+// =====================
+
+model DoseLog {
+  id String @id @default(uuid()) @db.Uuid
+
+  treatmentId String @map("treatment_id") @db.Uuid
+
+  residentId String @map("resident_id") @db.Uuid
+
+  staffId String @map("staff_id") @db.Uuid
+
+  scheduledAt DateTime @map("scheduled_at")
+
+  administeredAt DateTime? @map("administered_at")
+
+  status DoseStatus
+
+  omissionReason String? @map("omission_reason")
+
+  treatment TreatmentAssignment @relation(fields: [treatmentId], references: [id])
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
+  staff Staff @relation(fields: [staffId], references: [id])
+
+  @@map("dose_logs")
+}
